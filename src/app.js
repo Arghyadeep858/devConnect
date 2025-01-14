@@ -2,16 +2,22 @@ const express = require("express");
 
 const app = express();
 
-app.use("/", (req,res)=>{
-    res.send("Hello From the dashboard");
+const {userAuth, adminAuth} = require("./middleware/auth.js")
+
+app.use("/admin", adminAuth);
+
+app.get("/user", userAuth,(req,res)=>{
+    //console.log(req.params);
+    res.send("Hello From user");
 });
 
-app.use("/test", (req,res)=>{
+app.get("/admin/getAllData", (req,res)=>{
+    console.log(req.params);
     res.send("Hello From Test");
 });
 
-app.use("/hello", (req,res)=>{
-    res.send("Hello From server");
+app.get("/admin/deleteUser", (req,res)=>{
+    res.send("saved successfullly to the database");
 });
 
 
