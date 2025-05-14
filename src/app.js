@@ -3,24 +3,43 @@ const connectDB = require("./config/database");
 const app = express();
 const User = require("./models/user.js");
 const { Error } = require("mongoose");
+ 
+app.use(express.json());                                        // Middleware: use to parse request to json
+app.use(express.urlencoded({extended : true}));                 // Middleware: url encoding handled by express
 
-app.use(express.json());
+const cookieParser =  require("cookie-parser");
+const { userAuth } = require("./middleware/auth.js");
 
-app.post("/signup", async (req, res)=>{
+
+
+app.use(cookieParser()); // Using middleware of cookie parser
+ 
+const auth = require("./Routes/auth.js");
+const profile = require("./Routes//profile.js");
+const user = require("./Routes/request.js");
+
+app.get("/feed", userAuth ,async (req,res)=>{
     try{
 
-        const user = new User(req.body);
-        await user.save();
-        res.send("User Added Successfully");
-    } 
+        const user = await User.find({});
+        if(!user)
+        {
+            throw new Error("Invalid credentials");
+        }
+        console.log(user);
+        res.send(user);
+     
+    }
     catch(err)
     {
-        res.status(400).send(err.message);
-
+        res.status(400).user("Error: "+err.message);
     }
 });
 
-app.get("/user",async (req, res)=>{
+
+/* This is Get User by email function */ 
+
+app.get("/user", userAuth, async (req, res)=>{
     const userEmailId = req.body.email;
 
     try{
@@ -42,15 +61,18 @@ app.get("/user",async (req, res)=>{
     
 });
 
-app.delete("/user",async (req, res)=>{
+
+/* This is delete function */ 
+
+app.delete("/user", userAuth, async (req, res)=>{
     const userId = req.body.userId;
 
     try{
-        
+        // find by id and delete
         const user = await User.findByIdAndDelete(userId);
         if(user.length != 0)
         {
-            res.send("Successfully ddeleted the record");
+            res.send("Successfully deleted the record");
         }
         else{
             res.status(400).send("Something went wrong");  
@@ -63,37 +85,55 @@ app.delete("/user",async (req, res)=>{
     
 });
 
-app.patch("/user",async (req, res)=>{
-    const userId = req.body.userId;
-    const data  = req.body;
-    const ALLOWED_UPDATE = ["firstName","lastName","gender","age","skills","photoUrl"];
-    const isUpdateAllowed = Object.keys(data).every((k) => ALLOWED_UPDATE.includes(k));
 
-    if(!isUpdateAllowed)
-    {
-        res.status(400).send("Field cannot be updated")
-    }
+/* This is Update function */ 
+
+app.patch("/user/:userId", userAuth, async (req, res)=>{
+    
 
     try{
+        //user id comes from parameter/url userId
+        const userId = req.params.userId;
         
-        const user = await User.findByIdAndUpdate({_id:userId},data, {runValidators:true});
+        const data  = req.body;
+
+        //Separate some fields which only allowed for updating
+        const ALLOWED_UPDATE = ["userId","firstName","lastName","gender","age","skill","photoUrl"];
+
+        //The code checks if every key in the data object is present in the ALLOWED_UPDATE array
+        const isUpdateAllowed = Object.keys(data).every((k) => ALLOWED_UPDATE.includes(k));
+
+        if(!isUpdateAllowed)
+        {
+            throw new Error("Field cannot be updated");
+        }
+
+        if(data?.skill.length>10)
+        {
+            throw new Error("Skills cannot be more than 10");
+
+        }
+
+        // find user id comes from parameter/url and update fields
+        const user = await User.findByIdAndUpdate({_id:userId}, data, {runValidators:true});
         if(user.length != 0)
         {
             res.send("Successfully updated the record");
         }
         else{
+
             res.status(400).send("Something went wrong");  
         }
     } 
     catch(err)
     {
-        res.status(400).send("Something went wrong"+err.message);
+        throw new Error("Something went wrong: "+err.message);
 
     }
     
 });
 
-
+//Connnection with database 
 connectDB()
     .then(()=>{
         console.log("Database connection established");
