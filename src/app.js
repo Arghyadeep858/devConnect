@@ -11,12 +11,15 @@ const cookieParser =  require("cookie-parser");
 const { userAuth } = require("./middleware/auth.js");
 
 
-
 app.use(cookieParser()); // Using middleware of cookie parser
  
 const auth = require("./Routes/auth.js");
 const profile = require("./Routes//profile.js");
 const user = require("./Routes/request.js");
+
+app.use("/", auth);
+app.use("/", profile);
+app.use("/", user);
 
 app.get("/feed", userAuth ,async (req,res)=>{
     try{
