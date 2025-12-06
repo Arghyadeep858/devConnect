@@ -114,7 +114,6 @@ app.patch("/user/:userId", userAuth, async (req, res)=>{
         if(data?.skill.length>10)
         {
             throw new Error("Skills cannot be more than 10");
-
         }
 
         // find user id comes from parameter/url and update fields
